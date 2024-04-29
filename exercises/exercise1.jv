@@ -1,0 +1,59 @@
+// Exercise 1: airports
+// goal: - Write data into a SQLite database called “airports.sqlite”, in the table “airports”
+
+pipeline airportsPipeline {
+
+    // Connect airportsExtractor block to airportsTextFileInterpreter block
+    airportsExtractor ->  airportsTextFileInterpreter;
+        
+    // Output of airportsTextFileInterpreter block proceed with 
+    //airportsCSVInterpreter block,
+    //airportsTableInterpreter block,
+    //airportsLoader block
+    airportsTextFileInterpreter
+        -> airportsCSVInterpreter
+        -> airportsTableInterpreter
+        -> airportsLoader;
+
+    // Featched file from specified URL.
+    block airportsExtractor oftype HttpExtractor {
+    url: "https://opendata.rhein-kreis-neuss.de/api/explore/v2.1/catalog/datasets/rhein-kreis-neuss-flughafen-weltweit/exports/csv?lang=en&timezone=Europe%2FBerlin&use_labels=true&delimiter=%3B";
+    }
+
+    //  Converting File into TextFile
+    block airportsTextFileInterpreter oftype TextFileInterpreter { }
+
+    // Sheet file generated with string values ​​separated by a delimiter (;).
+    block airportsCSVInterpreter oftype CSVInterpreter { 
+        delimiter: ";";
+    }
+
+    // Table genearted from this sheet file with specified structure
+    // header true : The sheet's first row is interpreted as the header row.
+    // columns: give the columns name and a specified DataType.
+    block airportsTableInterpreter oftype TableInterpreter {
+        header: true;
+            columns: [
+                "Lfd.Nummer" oftype integer,
+                "NamedesFlughafens" oftype text,
+                "Ort" oftype text,
+                "Land" oftype text,
+                "IATA" oftype text,
+                "ICAO" oftype text,
+                "Latitude" oftype decimal,
+                "Longitude" oftype decimal,
+                "Altitude" oftype integer,
+                "Zeitzone" oftype decimal,
+                "DST" oftype text,
+                "Zeitzonen-Datenbank" oftype text,
+                "geo_punkt" oftype text
+            ];
+    }
+
+    // Gets the "airports.sqlite" database file and the "airports" table 
+    // by loading a table into a SqlLite database.
+    block airportsLoader oftype SQLiteLoader { 
+            table: "airports";
+            file: "./airports.sqlite";
+    }
+}
