@@ -1,0 +1,79 @@
+// Exercise 2: trees
+// goal: - Write data into a SQLite database called “trees.sqlite”, in the table "trees"
+
+pipeline treesPipeline {
+
+    // Connect treesExtractor block to treesTextFileInterpreter block
+    treesExtractor
+        -> treesTextFileInterpreter
+        -> treesCSVInterpreter
+        -> treesTableInterpreter
+        -> treesLoader;
+
+    // Featched file from specified URL.
+    block treesExtractor oftype HttpExtractor {
+    url: "https://opendata.rhein-kreis-neuss.de/api/v2/catalog/datasets/stadt-neuss-herbstpflanzung-2023/exports/csv";
+    }
+
+    //  Converting File into TextFile
+    block treesTextFileInterpreter oftype TextFileInterpreter { }
+
+    // Sheet file generated with string values ​​separated by a delimiter (;).
+    block treesCSVInterpreter oftype CSVInterpreter { 
+        delimiter: ";";
+    }
+
+    // Table genearted from this sheet file with specified structure
+    // header true : The sheet's first row is interpreted as the header row.
+    // columns: give the columns name and a specified DataType.
+    block treesTableInterpreter oftype TableInterpreter {
+        header: true;
+            columns: [
+                "lfd_nr" oftype integer,
+                "stadtteil" oftype ValidStadtteilStartwithFurth,
+                "standort" oftype text,
+                "baumart_botanisch" oftype text,
+                "id" oftype ValidId,
+                "baumfamilie" oftype text
+            ];
+    }
+
+    // Gets the "trees.sqlite" database file and the "trees" table 
+    // by loading a table into a SqlLite database.
+    block treesLoader oftype SQLiteLoader { 
+            table: "trees";
+            file: "./trees.sqlite";
+    }
+}
+
+// constraints on Stadtteil
+valuetype ValidStadtteilStartwithFurth oftype text {
+    constraints: [
+        StadtTeilString
+    ];
+}
+
+// StadtTeil string start with "Furth-"
+constraint StadtTeilString oftype RegexConstraint{
+    regex: /^Furth-/;
+}
+
+// constraints on Id Column
+valuetype ValidId oftype text {
+    constraints: [
+        IdString
+    ];
+}
+
+// Valid Id is follow this pattern {geo-coordinate 1}, {geo-coordinate 2}
+//a geo-coordinate is defined as {1-3 numbers}.{numbers}
+constraint IdString oftype RegexConstraint{
+    regex: /^\d{1,3}\.\d{1,},\s*\d{1,3}\.\d{1,}$/;
+}
+
+
+
+
+
+
+
